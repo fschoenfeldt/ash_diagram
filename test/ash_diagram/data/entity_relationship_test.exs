@@ -152,15 +152,26 @@ defmodule AshDiagram.Data.EntityRelationshipTest do
                    Comment[]？ comments
                    Author？ author
                    Meta？ meta
+                   Stats？ stats
+                   Struct？ raw
                  }
                  "AshDiagram.Embedded.Meta"["Meta"] {
                    Integer views
                    String[]？ tags
                  }
+                 "AshDiagram.Embedded.Reaction"["Reaction"] {
+                   String emoji
+                 }
+                 "AshDiagram.Embedded.Stats"["Stats"] {
+                   Integer likes
+                   Reaction[]？ reactions
+                 }
                  "AshDiagram.Embedded.Comment" ||--o| "AshDiagram.Embedded.Author" : ""
                  "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Author" : ""
                  "AshDiagram.Embedded.Post" ||--o{ "AshDiagram.Embedded.Comment" : ""
                  "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Meta" : ""
+                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Stats" : ""
+                 "AshDiagram.Embedded.Stats" ||--o{ "AshDiagram.Embedded.Reaction" : ""
                """
     end
   end
