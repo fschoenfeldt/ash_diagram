@@ -131,6 +131,31 @@ defmodule AshDiagram.Data.ClassTest do
                """
     end
 
+    test "keeps a namespace name for a domain that prefixes another domain" do
+      diagram =
+        Class.for_resources(
+          [Namespaces.Blog.Author, Namespaces.Blog.Admin.Moderator],
+          namespace: :domain
+        )
+
+      assert diagram |> AshDiagram.compose() |> IO.iodata_to_binary() ==
+               """
+               classDiagram
+                 namespace Blog {
+                   class `AshDiagram.Namespaces.Blog.Author`["Author"] {
+                     +UUID id
+                     +?String name
+                   }
+                 }
+                 namespace Blog.Admin {
+                   class `AshDiagram.Namespaces.Blog.Admin.Moderator`["Admin.Moderator"] {
+                     +UUID id
+                   }
+                 }
+                 `AshDiagram.Namespaces.Blog.Author` "*" o--* "0..1" `AshDiagram.Namespaces.Blog.Post`
+               """
+    end
+
     test "resolves aggregate types" do
       diagram = Class.for_resources([Author, Post])
 
