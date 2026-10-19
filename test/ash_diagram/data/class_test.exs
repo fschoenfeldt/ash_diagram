@@ -97,6 +97,62 @@ defmodule AshDiagram.Data.ClassTest do
                """
     end
 
+    test "groups classes into one namespace per domain" do
+      diagram = Class.for_resources([User, Org, Author, Post], namespace: :domain)
+
+      assert diagram |> AshDiagram.compose() |> IO.iodata_to_binary() ==
+               """
+               classDiagram
+                 class `dummy`["♡"]
+                 namespace Aggregates.Domain {
+                   class `AshDiagram.Aggregates.Author`["Aggregates.Author"] {
+                     +UUID id
+                     +Integer post_count
+                     +Boolean has_posts?
+                     +Integer top_score
+                     +String[] titles
+                     +String joined_titles
+                   }
+                   class `AshDiagram.Aggregates.Post`["Aggregates.Post"] {
+                     +UUID id
+                     +?String title
+                     +?Integer score
+                     +?UUID author_id
+                   }
+                 }
+                 namespace Flow.Domain {
+                   class `AshDiagram.Flow.Org`["Flow.Org"] {
+                     +UUID id
+                     +?String name
+                     +update() : update~Flow.Org~
+                     +create() : create~Flow.Org~
+                     +destroy() : destroy~Flow.Org~
+                     +read() : read~Flow.Org~
+                     +by_name(String name) : read~Flow.Org~
+                     +archive() : update~Flow.Org~
+                   }
+                   class `AshDiagram.Flow.User`["Flow.User"] {
+                     +UUID id
+                     +?String first_name
+                     +?String last_name
+                     +?String email
+                     +?Boolean approved?
+                     +destroy() : destroy~Flow.User~
+                     +read() : read~Flow.User~
+                     +for_org(UUID org) : read~Flow.User~
+                     +by_name(String name) : read~Flow.User~
+                     +create(UUID org) : create~Flow.User~
+                     +update() : update~Flow.User~
+                     +approve() : update~Flow.User~
+                     +unapprove() : update~Flow.User~
+                     +report(String reason) : action~?Boolean~
+                   }
+                 }
+                 `AshDiagram.Aggregates.Author` "*" o--* "0..1" `AshDiagram.Aggregates.Post`
+                 `AshDiagram.Flow.Org` "*" o--* "0..1" `AshDiagram.Flow.User`
+               """
+    end
+
     test "resolves aggregate types" do
       diagram = Class.for_resources([Author, Post])
 
