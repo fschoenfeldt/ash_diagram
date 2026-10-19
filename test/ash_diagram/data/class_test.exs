@@ -134,6 +134,13 @@ defmodule AshDiagram.Data.ClassTest do
       refute IO.iodata_to_binary(public_only) =~ "`AshDiagram.Embedded.Note`"
       assert IO.iodata_to_binary(with_private) =~ "`AshDiagram.Embedded.Note`"
     end
+
+    # TODO: support union and maps
+    test "does not find embedded resources in union and map types" do
+      diagram = [Embedded.Container] |> Class.for_resources() |> AshDiagram.compose()
+
+      refute IO.iodata_to_binary(diagram) =~ "`AshDiagram.Embedded.Author`"
+    end
   end
 
   describe inspect(&Class.for_domains/1) do

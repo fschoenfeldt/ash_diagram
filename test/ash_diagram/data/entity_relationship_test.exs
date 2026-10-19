@@ -116,6 +116,13 @@ defmodule AshDiagram.Data.EntityRelationshipTest do
       refute IO.iodata_to_binary(public_only) =~ ~s("AshDiagram.Embedded.Note")
       assert IO.iodata_to_binary(with_private) =~ ~s("AshDiagram.Embedded.Note")
     end
+
+    # TODO: support union and maps
+    test "does not find embedded resources in union and map types" do
+      diagram = [Embedded.Container] |> EntityRelationship.for_resources() |> AshDiagram.compose()
+
+      refute IO.iodata_to_binary(diagram) =~ ~s("AshDiagram.Embedded.Author")
+    end
   end
 
   describe inspect(&EntityRelationship.for_domains/1) do
