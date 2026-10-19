@@ -126,6 +126,14 @@ defmodule AshDiagram.Data.ClassTest do
       assert [Embedded.Post, Embedded.Comment] |> Class.for_resources() |> AshDiagram.compose() ==
                [Embedded.Domain] |> Class.for_domains() |> AshDiagram.compose()
     end
+
+    test "only follows private attributes to embedded resources with show_private?" do
+      public_only = [Embedded.Post] |> Class.for_resources() |> AshDiagram.compose()
+      with_private = [Embedded.Post] |> Class.for_resources(show_private?: true) |> AshDiagram.compose()
+
+      refute IO.iodata_to_binary(public_only) =~ "`AshDiagram.Embedded.Note`"
+      assert IO.iodata_to_binary(with_private) =~ "`AshDiagram.Embedded.Note`"
+    end
   end
 
   describe inspect(&Class.for_domains/1) do

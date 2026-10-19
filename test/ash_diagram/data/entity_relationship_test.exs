@@ -104,6 +104,18 @@ defmodule AshDiagram.Data.EntityRelationshipTest do
              |> AshDiagram.compose() ==
                [Embedded.Domain] |> EntityRelationship.for_domains() |> AshDiagram.compose()
     end
+
+    test "only follows private attributes to embedded resources with show_private?" do
+      public_only = [Embedded.Post] |> EntityRelationship.for_resources() |> AshDiagram.compose()
+
+      with_private =
+        [Embedded.Post]
+        |> EntityRelationship.for_resources(show_private?: true)
+        |> AshDiagram.compose()
+
+      refute IO.iodata_to_binary(public_only) =~ ~s("AshDiagram.Embedded.Note")
+      assert IO.iodata_to_binary(with_private) =~ ~s("AshDiagram.Embedded.Note")
+    end
   end
 
   describe inspect(&EntityRelationship.for_domains/1) do

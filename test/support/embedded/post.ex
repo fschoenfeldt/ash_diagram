@@ -18,5 +18,7 @@ defmodule AshDiagram.Embedded.Post do
     attribute :author, AshDiagram.Embedded.Author do
       public?(true)
     end
+
+    attribute :note, AshDiagram.Embedded.Note
   end
 end
