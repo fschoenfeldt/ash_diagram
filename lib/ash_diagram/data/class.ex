@@ -390,14 +390,10 @@ defmodule AshDiagram.Data.Class do
   defp common_prefix(modules)
   defp common_prefix([]), do: []
 
-  defp common_prefix([module]) do
-    parts = Module.split(module)
-    Enum.take(parts, length(parts) - 1)
-  end
-
   defp common_prefix(modules) do
+    # Compare namespaces only, so every name keeps at least its last part
     modules
-    |> Enum.map(&Module.split/1)
+    |> Enum.map(&namespace_parts/1)
     |> Enum.reduce(fn list, acc ->
       acc
       |> Enum.zip(list)
@@ -405,6 +401,9 @@ defmodule AshDiagram.Data.Class do
       |> Enum.map(&elem(&1, 1))
     end)
   end
+
+  @spec namespace_parts(module :: module()) :: [String.t()]
+  defp namespace_parts(module), do: module |> Module.split() |> Enum.drop(-1)
 
   @spec normalize_relationship(relationship :: DiagramImpl.Relationship.t()) ::
           DiagramImpl.Relationship.t()
