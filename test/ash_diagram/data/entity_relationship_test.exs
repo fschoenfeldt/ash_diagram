@@ -123,10 +123,17 @@ defmodule AshDiagram.Data.EntityRelationshipTest do
 
       refute IO.iodata_to_binary(diagram) =~ ~s("AshDiagram.Embedded.Author")
     end
+
+    test "accepts typed structs" do
+      assert [Embedded.Post, Embedded.Meta]
+             |> EntityRelationship.for_resources()
+             |> AshDiagram.compose() ==
+               [Embedded.Domain] |> EntityRelationship.for_domains() |> AshDiagram.compose()
+    end
   end
 
   describe inspect(&EntityRelationship.for_domains/1) do
-    test "adds embedded resources as related entities" do
+    test "adds embedded resources and typed structs as related entities" do
       diagram = EntityRelationship.for_domains([Embedded.Domain])
 
       assert diagram |> AshDiagram.compose() |> IO.iodata_to_binary() ==
@@ -144,10 +151,16 @@ defmodule AshDiagram.Data.EntityRelationshipTest do
                    String？ title
                    Comment[]？ comments
                    Author？ author
+                   Meta？ meta
+                 }
+                 "AshDiagram.Embedded.Meta"["Meta"] {
+                   Integer views
+                   String[]？ tags
                  }
                  "AshDiagram.Embedded.Comment" ||--o| "AshDiagram.Embedded.Author" : ""
                  "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Author" : ""
                  "AshDiagram.Embedded.Post" ||--o{ "AshDiagram.Embedded.Comment" : ""
+                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Meta" : ""
                """
     end
   end
