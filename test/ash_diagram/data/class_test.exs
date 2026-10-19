@@ -7,6 +7,7 @@ defmodule AshDiagram.Data.ClassTest do
   alias AshDiagram.Aggregates.Author
   alias AshDiagram.Aggregates.Post
   alias AshDiagram.Data.Class
+  alias AshDiagram.Embedded
   alias AshDiagram.Flow.Org
   alias AshDiagram.Flow.User
 
@@ -118,6 +119,46 @@ defmodule AshDiagram.Data.ClassTest do
                    +?UUID author_id
                  }
                  `AshDiagram.Aggregates.Author` "*" o--* "0..1" `AshDiagram.Aggregates.Post`
+               """
+    end
+
+    test "accepts embedded resources" do
+      assert [Embedded.Post, Embedded.Comment] |> Class.for_resources() |> AshDiagram.compose() ==
+               [Embedded.Domain] |> Class.for_domains() |> AshDiagram.compose()
+    end
+  end
+
+  describe inspect(&Class.for_domains/1) do
+    test "adds embedded resources as compositions" do
+      diagram = Class.for_domains([Embedded.Domain])
+
+      assert diagram |> AshDiagram.compose() |> IO.iodata_to_binary() ==
+               """
+               classDiagram
+                 class `AshDiagram.Embedded.Author`["Author"] {
+                   +?String name
+                   +create() : create~Author~
+                   +read() : read~Author~
+                   +update() : update~Author~
+                   +destroy() : destroy~Author~
+                 }
+                 class `AshDiagram.Embedded.Comment`["Comment"] {
+                   +?String text
+                   +?Author author
+                   +create() : create~Comment~
+                   +read() : read~Comment~
+                   +update() : update~Comment~
+                   +destroy() : destroy~Comment~
+                 }
+                 class `AshDiagram.Embedded.Post`["Post"] {
+                   +UUID id
+                   +?String title
+                   +?Comment[] comments
+                   +?Author author
+                 }
+                 `AshDiagram.Embedded.Comment` "1" *-- "1" `AshDiagram.Embedded.Author`
+                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Author`
+                 `AshDiagram.Embedded.Post` "1" *-- "*" `AshDiagram.Embedded.Comment`
                """
     end
   end

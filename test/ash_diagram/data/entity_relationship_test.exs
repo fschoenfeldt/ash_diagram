@@ -7,6 +7,7 @@ defmodule AshDiagram.Data.EntityRelationshipTest do
   alias AshDiagram.Aggregates.Author
   alias AshDiagram.Aggregates.Post
   alias AshDiagram.Data.EntityRelationship
+  alias AshDiagram.Embedded
   alias AshDiagram.Flow.Org
   alias AshDiagram.Flow.User
 
@@ -94,6 +95,40 @@ defmodule AshDiagram.Data.EntityRelationshipTest do
                    UUID？ author_id
                  }
                  "AshDiagram.Aggregates.Author" }o--o| "AshDiagram.Aggregates.Post" : ""
+               """
+    end
+
+    test "accepts embedded resources" do
+      assert [Embedded.Post, Embedded.Comment]
+             |> EntityRelationship.for_resources()
+             |> AshDiagram.compose() ==
+               [Embedded.Domain] |> EntityRelationship.for_domains() |> AshDiagram.compose()
+    end
+  end
+
+  describe inspect(&EntityRelationship.for_domains/1) do
+    test "adds embedded resources as related entities" do
+      diagram = EntityRelationship.for_domains([Embedded.Domain])
+
+      assert diagram |> AshDiagram.compose() |> IO.iodata_to_binary() ==
+               """
+               erDiagram
+                 "AshDiagram.Embedded.Author"["Author"] {
+                   String？ name
+                 }
+                 "AshDiagram.Embedded.Comment"["Comment"] {
+                   String？ text
+                   Author？ author
+                 }
+                 "AshDiagram.Embedded.Post"["Post"] {
+                   UUID id
+                   String？ title
+                   Comment[]？ comments
+                   Author？ author
+                 }
+                 "AshDiagram.Embedded.Comment" ||--o| "AshDiagram.Embedded.Author" : ""
+                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Author" : ""
+                 "AshDiagram.Embedded.Post" ||--o{ "AshDiagram.Embedded.Comment" : ""
                """
     end
   end
