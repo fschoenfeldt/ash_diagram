@@ -24,6 +24,27 @@ defmodule AshDiagram.Data.Types do
   def compositions(modules, attribute_fun),
     do: collect(modules, attribute_fun, MapSet.new(modules))
 
+  @typedoc """
+  A resource using a target module in an action, as an argument or as the
+  return type of a generic action.
+  """
+  @type dependency() :: {resource :: module(), action :: atom(), target :: module()}
+
+  @doc """
+  Finds every embedded resource and typed struct used by the actions of the
+  given resources. Like the method signature, private arguments count, too.
+  """
+  @spec dependencies(modules :: [module()]) :: [dependency()]
+  def dependencies(modules) do
+    for resource <- modules,
+        Info.resource?(resource),
+        action <- Info.actions(resource),
+        %{type: type, constraints: constraints} <- action_types(action),
+        {target, _cardinality} <- target(type, constraints),
+        uniq: true,
+        do: {resource, action.name, target}
+  end
+
   @doc """
   Returns `true` if the module is an `Ash.TypedStruct`.
   """
@@ -65,6 +86,14 @@ defmodule AshDiagram.Data.Types do
       do: Ash.TypedStruct.Info.fields(module),
       else: attribute_fun.(module)
   end
+
+  @spec action_types(action :: Ash.Resource.Actions.action()) ::
+          [%{type: Ash.Type.t(), constraints: Keyword.t()}]
+  defp action_types(%{type: :action, returns: returns, constraints: constraints} = action)
+       when not is_nil(returns),
+       do: [%{type: returns, constraints: constraints || []} | action.arguments]
+
+  defp action_types(action), do: action.arguments
 
   # The embedded resource or typed struct behind a type, if any
   @spec target(type :: Ash.Type.t(), constraints :: Keyword.t()) ::
