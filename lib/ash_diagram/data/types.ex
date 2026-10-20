@@ -3,6 +3,7 @@ defmodule AshDiagram.Data.Types do
 
   alias Ash.Resource.Attribute
   alias Ash.Resource.Info
+  alias Ash.TypedStruct.Field
 
   @typedoc """
   An owner module embedding a target module once (`:one`) or as a list (`:many`).
@@ -10,9 +11,9 @@ defmodule AshDiagram.Data.Types do
   @type composition() :: {owner :: module(), target :: module(), cardinality :: :one | :many}
 
   @doc """
-  Finds every embedded resource reachable through the attribute types of the
-  given modules, recursively. Embedded resources have no domain, so they are
-  never listed by `Ash.Domain.Info.resources/1`.
+  Finds every embedded resource and typed struct reachable through the
+  attribute types of the given modules, recursively. Neither has a domain, so
+  they are never listed by `Ash.Domain.Info.resources/1`.
   """
   @spec compositions(
           modules :: [module()],
@@ -20,6 +21,12 @@ defmodule AshDiagram.Data.Types do
         ) :: [composition()]
   def compositions(modules, attribute_fun),
     do: collect(modules, attribute_fun, MapSet.new(modules))
+
+  @doc """
+  Returns `true` if the module is an `Ash.TypedStruct`.
+  """
+  @spec typed_struct?(module :: module()) :: boolean()
+  def typed_struct?(module), do: Spark.Dsl.is?(module, Ash.TypedStruct)
 
   @spec collect(
           modules :: [module()],
@@ -31,8 +38,8 @@ defmodule AshDiagram.Data.Types do
   defp collect([module | rest], attribute_fun, seen) do
     compositions =
       module
-      |> attribute_fun.()
-      |> Enum.flat_map(&composition(module, &1.type))
+      |> fields(attribute_fun)
+      |> Enum.flat_map(&composition(module, &1.type, &1.constraints))
 
     new_targets =
       compositions
@@ -44,13 +51,33 @@ defmodule AshDiagram.Data.Types do
       collect(rest ++ new_targets, attribute_fun, MapSet.union(seen, MapSet.new(new_targets)))
   end
 
-  @spec composition(owner :: module(), type :: Ash.Type.t()) :: [composition()]
-  defp composition(owner, {:array, type}) do
-    for {^owner, target, _cardinality} <- composition(owner, type), do: {owner, target, :many}
+  @spec fields(
+          module :: module(),
+          attribute_fun :: (module() -> [Attribute.t()])
+        ) :: [Attribute.t() | Field.t()]
+  defp fields(module, attribute_fun) do
+    if typed_struct?(module),
+      do: Ash.TypedStruct.Info.fields(module),
+      else: attribute_fun.(module)
   end
 
-  defp composition(owner, type) do
-    if Info.resource?(type) and Info.embedded?(type),
+  @spec composition(owner :: module(), type :: Ash.Type.t(), constraints :: Keyword.t()) ::
+          [composition()]
+  defp composition(owner, {:array, type}, constraints) do
+    for {^owner, target, _cardinality} <-
+          composition(owner, type, Keyword.get(constraints, :items, [])),
+        do: {owner, target, :many}
+  end
+
+  defp composition(owner, Ash.Type.Struct, constraints) do
+    case Keyword.fetch(constraints, :instance_of) do
+      {:ok, module} -> composition(owner, module, [])
+      :error -> []
+    end
+  end
+
+  defp composition(owner, type, _constraints) do
+    if (Info.resource?(type) and Info.embedded?(type)) or typed_struct?(type),
       do: [{owner, type, :one}],
       else: []
   end

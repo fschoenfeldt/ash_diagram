@@ -4,6 +4,8 @@ defmodule AshDiagram.Embedded.Post do
     domain: AshDiagram.Embedded.Domain,
     data_layer: Ash.DataLayer.Ets
 
+  alias AshDiagram.Embedded.Meta
+
   attributes do
     uuid_primary_key :id
 
@@ -20,5 +22,30 @@ defmodule AshDiagram.Embedded.Post do
     end
 
     attribute :note, AshDiagram.Embedded.Note
+
+    attribute :meta, :struct do
+      constraints instance_of: Meta
+      public?(true)
+    end
+
+    attribute :stats, AshDiagram.Embedded.Stats do
+      public?(true)
+    end
+
+    attribute :raw, :struct do
+      public?(true)
+    end
+  end
+
+  actions do
+    action :summarize, :struct do
+      constraints instance_of: Meta
+
+      argument :previous, {:array, :struct} do
+        constraints items: [instance_of: Meta]
+      end
+
+      run fn _input, _context -> {:ok, nil} end
+    end
   end
 end

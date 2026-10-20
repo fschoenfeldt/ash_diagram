@@ -200,10 +200,15 @@ defmodule AshDiagram.Data.ClassTest do
 
       refute IO.iodata_to_binary(diagram) =~ "`AshDiagram.Embedded.Author`"
     end
+
+    test "accepts typed structs" do
+      assert [Embedded.Post, Embedded.Meta] |> Class.for_resources() |> AshDiagram.compose() ==
+               [Embedded.Domain] |> Class.for_domains() |> AshDiagram.compose()
+    end
   end
 
   describe inspect(&Class.for_domains/1) do
-    test "adds embedded resources as compositions" do
+    test "adds embedded resources and typed structs as compositions" do
       diagram = Class.for_domains([Embedded.Domain])
 
       assert diagram |> AshDiagram.compose() |> IO.iodata_to_binary() ==
@@ -229,10 +234,28 @@ defmodule AshDiagram.Data.ClassTest do
                    +?String title
                    +?Comment[] comments
                    +?Author author
+                   +?Meta meta
+                   +?Stats stats
+                   +?Struct raw
+                   +summarize(?Meta[] previous) : action~Meta~
+                 }
+                 class `AshDiagram.Embedded.Meta`["Meta"] {
+                   +Integer views
+                   +?String[] tags
+                 }
+                 class `AshDiagram.Embedded.Reaction`["Reaction"] {
+                   +String emoji
+                 }
+                 class `AshDiagram.Embedded.Stats`["Stats"] {
+                   +Integer likes
+                   +?Reaction[] reactions
                  }
                  `AshDiagram.Embedded.Comment` "1" *-- "1" `AshDiagram.Embedded.Author`
                  `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Author`
                  `AshDiagram.Embedded.Post` "1" *-- "*" `AshDiagram.Embedded.Comment`
+                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Meta`
+                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Stats`
+                 `AshDiagram.Embedded.Stats` "1" *-- "*" `AshDiagram.Embedded.Reaction`
                """
     end
   end
