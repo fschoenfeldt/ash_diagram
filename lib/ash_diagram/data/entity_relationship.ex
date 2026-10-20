@@ -22,6 +22,7 @@ defmodule AshDiagram.Data.EntityRelationship do
   alias AshDiagram.Data.Extension
   alias AshDiagram.Data.Types
   alias AshDiagram.EntityRelationship, as: DiagramImpl
+  alias AshDiagram.Util
 
   @typedoc """
   Configuration option for entity-relationship diagram generation.
@@ -141,24 +142,7 @@ defmodule AshDiagram.Data.EntityRelationship do
     compositions = Types.compositions(resources, attribute_fun)
     resources = Enum.uniq(resources ++ Enum.map(compositions, &elem(&1, 1)))
 
-    entity_names =
-      case options[:name] do
-        :full ->
-          Map.new(resources, &{&1, inspect(&1)})
-
-        :short ->
-          common_name_parts = common_prefix(resources)
-
-          Map.new(resources, fn resource ->
-            shortened_name =
-              resource
-              |> Module.split()
-              |> Enum.drop(length(common_name_parts))
-              |> Enum.intersperse(".")
-
-            {resource, shortened_name}
-          end)
-      end
+    entity_names = Util.module_names(resources, options[:name])
 
     entries =
       for resource <- Enum.sort(resources) do
@@ -263,25 +247,6 @@ defmodule AshDiagram.Data.EntityRelationship do
   defp cardinality(%Relationships.HasOne{}), do: {:exactly_one, :zero_or_one}
   defp cardinality(%Relationships.ManyToMany{}), do: {:zero_or_more, :zero_or_more}
 
-  @spec common_prefix(parts :: [module()]) :: [String.t()]
-  defp common_prefix(parts)
-
-  defp common_prefix([module]) do
-    parts = Module.split(module)
-    Enum.take(parts, length(parts) - 1)
-  end
-
-  defp common_prefix(parts) do
-    parts
-    |> Enum.map(&Module.split/1)
-    |> Enum.reduce(fn list, acc ->
-      acc
-      |> Enum.zip(list)
-      |> Enum.take_while(fn {a, b} -> a == b end)
-      |> Enum.map(&elem(&1, 1))
-    end)
-  end
-
   @spec normalize_relationship(relationship :: DiagramImpl.Relationship.t()) ::
           DiagramImpl.Relationship.t()
   defp normalize_relationship(relationship)
@@ -302,8 +267,6 @@ defmodule AshDiagram.Data.EntityRelationship do
   def sanitize_property_name(name) when is_atom(name) do
     name
     |> to_string()
-    |> AshDiagram.Util.sanitize_non_escapable_string(
-      ~r/[^A-Za-z0-9_\-\[\]\(\)\*\x{00C0}-\x{FFFF}]/u
-    )
+    |> Util.sanitize_non_escapable_string(~r/[^A-Za-z0-9_\-\[\]\(\)\*\x{00C0}-\x{FFFF}]/u)
   end
 end

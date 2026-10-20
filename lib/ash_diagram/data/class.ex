@@ -28,6 +28,7 @@ defmodule AshDiagram.Data.Class do
   alias AshDiagram.Class.Relationship.Pointer
   alias AshDiagram.Data.Extension
   alias AshDiagram.Data.Types
+  alias AshDiagram.Util
 
   @typedoc """
   Configuration option for class diagram generation.
@@ -146,7 +147,7 @@ defmodule AshDiagram.Data.Class do
 
     compositions = Types.compositions(resources, attribute_fun)
     resources = Enum.uniq(resources ++ Enum.map(compositions, &elem(&1, 1)))
-    entity_names = build_entity_names(resources, options[:name])
+    entity_names = Util.module_names(resources, options[:name])
 
     entries =
       resources
@@ -161,27 +162,6 @@ defmodule AshDiagram.Data.Class do
     Extension.construct_diagram(__MODULE__, extensions, %DiagramImpl{
       entries: entries ++ relationships
     })
-  end
-
-  @spec build_entity_names(resources :: [Ash.Resource.t()], name_option :: :full | :short) :: %{
-          Ash.Resource.t() => iodata()
-        }
-  defp build_entity_names(resources, :full) do
-    Map.new(resources, &{&1, inspect(&1)})
-  end
-
-  defp build_entity_names(resources, :short) do
-    common_name_parts = common_prefix(resources)
-
-    Map.new(resources, fn resource ->
-      shortened_name =
-        resource
-        |> Module.split()
-        |> Enum.drop(length(common_name_parts))
-        |> Enum.intersperse(".")
-
-      {resource, shortened_name}
-    end)
   end
 
   @spec build_access_functions(show_private? :: boolean()) ::
@@ -237,7 +217,7 @@ defmodule AshDiagram.Data.Class do
       |> Map.values()
       |> Enum.reject(&is_nil/1)
       |> Enum.uniq()
-      |> build_entity_names(name_option)
+      |> Util.module_names(name_option)
 
     {grouped, ungrouped} = Enum.split_with(classes, &domains[&1.id])
 
@@ -414,25 +394,6 @@ defmodule AshDiagram.Data.Class do
   defp pointer_type(%Relationships.HasMany{}), do: {:aggregation, :composition}
   defp pointer_type(%Relationships.HasOne{}), do: {:aggregation, :composition}
   defp pointer_type(%Relationships.ManyToMany{}), do: {:association, :association}
-
-  @spec common_prefix(modules :: [module()]) :: [String.t()]
-  defp common_prefix(modules)
-  defp common_prefix([]), do: []
-
-  defp common_prefix(modules) do
-    # Compare namespaces only, so every name keeps at least its last part
-    modules
-    |> Enum.map(&namespace_parts/1)
-    |> Enum.reduce(fn list, acc ->
-      acc
-      |> Enum.zip(list)
-      |> Enum.take_while(fn {a, b} -> a == b end)
-      |> Enum.map(&elem(&1, 1))
-    end)
-  end
-
-  @spec namespace_parts(module :: module()) :: [String.t()]
-  defp namespace_parts(module), do: module |> Module.split() |> Enum.drop(-1)
 
   @spec normalize_relationship(relationship :: DiagramImpl.Relationship.t()) ::
           DiagramImpl.Relationship.t()
