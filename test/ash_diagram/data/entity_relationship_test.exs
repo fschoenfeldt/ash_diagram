@@ -166,13 +166,27 @@ defmodule AshDiagram.Data.EntityRelationshipTest do
                    Integer likes
                    Reaction[]？ reactions
                  }
-                 "AshDiagram.Embedded.Comment" ||--o| "AshDiagram.Embedded.Author" : ""
-                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Author" : ""
-                 "AshDiagram.Embedded.Post" ||--o{ "AshDiagram.Embedded.Comment" : ""
-                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Meta" : ""
-                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Stats" : ""
-                 "AshDiagram.Embedded.Stats" ||--o{ "AshDiagram.Embedded.Reaction" : ""
+                 "AshDiagram.Embedded.Comment" ||--o| "AshDiagram.Embedded.Author" : "author"
+                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Author" : "author"
+                 "AshDiagram.Embedded.Post" ||--o{ "AshDiagram.Embedded.Comment" : "comments"
+                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Meta" : "meta"
+                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Stats" : "stats"
+                 "AshDiagram.Embedded.Stats" ||--o{ "AshDiagram.Embedded.Reaction" : "reactions"
                """
+    end
+
+    test "leaves out typed structs only used in actions" do
+      diagram = [Embedded.Domain] |> EntityRelationship.for_domains() |> AshDiagram.compose()
+
+      refute IO.iodata_to_binary(diagram) =~ ~s("AshDiagram.Embedded.Summary")
+    end
+
+    test "leaves out composition labels without :compositions in labels" do
+      diagram =
+        [Embedded.Domain] |> EntityRelationship.for_domains(labels: []) |> AshDiagram.compose()
+
+      assert IO.iodata_to_binary(diagram) =~
+               ~s("AshDiagram.Embedded.Post" ||--o{ "AshDiagram.Embedded.Comment" : ""\n)
     end
   end
 end
