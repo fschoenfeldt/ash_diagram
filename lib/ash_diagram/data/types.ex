@@ -6,11 +6,12 @@ defmodule AshDiagram.Data.Types do
   alias Ash.TypedStruct.Field
 
   @typedoc """
-  An owner module embedding a target module in a field, once (`:one`) or as a
-  list (`:many`).
+  An owner module embedding a target module in a field, once (`:one`), once or
+  `nil` (`:optional`) or as a list (`:many`).
   """
   @type composition() ::
-          {owner :: module(), field :: atom(), target :: module(), cardinality :: :one | :many}
+          {owner :: module(), field :: atom(), target :: module(),
+           cardinality :: :one | :optional | :many}
 
   @doc """
   Finds every embedded resource and typed struct reachable through the
@@ -64,7 +65,7 @@ defmodule AshDiagram.Data.Types do
       |> fields(attribute_fun)
       |> Enum.flat_map(fn field ->
         for {target, cardinality} <- target(field.type, field.constraints),
-            do: {module, field.name, target, cardinality}
+            do: {module, field.name, target, cardinality(cardinality, field.allow_nil?)}
       end)
 
     new_targets =
@@ -86,6 +87,12 @@ defmodule AshDiagram.Data.Types do
       do: Ash.TypedStruct.Info.fields(module),
       else: attribute_fun.(module)
   end
+
+  # A list may be empty anyway, only a single value becomes optional
+  @spec cardinality(cardinality :: :one | :many, allow_nil? :: boolean()) ::
+          :one | :optional | :many
+  defp cardinality(:one, true), do: :optional
+  defp cardinality(cardinality, _allow_nil?), do: cardinality
 
   @spec action_types(action :: Ash.Resource.Actions.action()) ::
           [%{type: Ash.Type.t(), constraints: Keyword.t()}]
