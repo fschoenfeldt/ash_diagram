@@ -191,13 +191,20 @@ defmodule AshDiagram.Data.ClassTest do
                    +Integer likes
                    +?Reaction[] reactions
                  }
-                 `AshDiagram.Embedded.Comment` "1" *-- "1" `AshDiagram.Embedded.Author`
-                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Author`
-                 `AshDiagram.Embedded.Post` "1" *-- "*" `AshDiagram.Embedded.Comment`
-                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Meta`
-                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Stats`
-                 `AshDiagram.Embedded.Stats` "1" *-- "*" `AshDiagram.Embedded.Reaction`
+                 `AshDiagram.Embedded.Comment` "1" *-- "1" `AshDiagram.Embedded.Author` : author
+                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Author` : author
+                 `AshDiagram.Embedded.Post` "1" *-- "*" `AshDiagram.Embedded.Comment` : comments
+                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Meta` : meta
+                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Stats` : stats
+                 `AshDiagram.Embedded.Stats` "1" *-- "*" `AshDiagram.Embedded.Reaction` : reactions
                """
+    end
+
+    test "leaves out composition labels without :compositions in labels" do
+      diagram = [Embedded.Domain] |> Class.for_domains(labels: []) |> AshDiagram.compose()
+
+      assert IO.iodata_to_binary(diagram) =~
+               ~s(`AshDiagram.Embedded.Post` "1" *-- "*" `AshDiagram.Embedded.Comment`\n)
     end
   end
 end
