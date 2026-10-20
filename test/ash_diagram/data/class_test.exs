@@ -233,7 +233,7 @@ defmodule AshDiagram.Data.ClassTest do
                  }
                  class `AshDiagram.Embedded.Comment`["Comment"] {
                    +?String text
-                   +?Author author
+                   +Author author
                    +create() : create~Comment~
                    +read() : read~Comment~
                    +update() : update~Comment~
@@ -243,7 +243,8 @@ defmodule AshDiagram.Data.ClassTest do
                    +UUID id
                    +?String title
                    +?Comment[] comments
-                   +?Author author
+                   +Author author
+                   +?Author editor
                    +?Meta meta
                    +?Stats stats
                    +?Struct raw
@@ -270,8 +271,9 @@ defmodule AshDiagram.Data.ClassTest do
                  `AshDiagram.Embedded.Comment` "1" *-- "1" `AshDiagram.Embedded.Author` : author
                  `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Author` : author
                  `AshDiagram.Embedded.Post` "1" *-- "*" `AshDiagram.Embedded.Comment` : comments
-                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Meta` : meta
-                 `AshDiagram.Embedded.Post` "1" *-- "1" `AshDiagram.Embedded.Stats` : stats
+                 `AshDiagram.Embedded.Post` "1" *-- "0..1" `AshDiagram.Embedded.Author` : editor
+                 `AshDiagram.Embedded.Post` "1" *-- "0..1" `AshDiagram.Embedded.Meta` : meta
+                 `AshDiagram.Embedded.Post` "1" *-- "0..1" `AshDiagram.Embedded.Stats` : stats
                  `AshDiagram.Embedded.Stats` "1" *-- "*" `AshDiagram.Embedded.Reaction` : reactions
                  `AshDiagram.Embedded.Post` ..> `AshDiagram.Embedded.Summary` : digest, preview, revise
                """
