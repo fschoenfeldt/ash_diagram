@@ -31,8 +31,10 @@ defmodule AshDiagram.Data.EntityRelationship do
   Available options:
   - `{:name, :full | :short}` - How to display resource names. `:full` shows complete module names, `:short` shows shortened names with common prefixes removed
   - `{:show_private?, boolean()}` - Whether to include private attributes, calculations, aggregates, and relationships in the diagram
+  - `{:labels, [:compositions]}` - Which relationships are labeled. `:compositions` labels the relationship to an embedded resource or typed struct with the field holding it
   """
-  @type option() :: {:name, :full | :short} | {:show_private?, boolean()}
+  @type option() ::
+          {:name, :full | :short} | {:show_private?, boolean()} | {:labels, [:compositions]}
 
   @typedoc """
   List of configuration options for entity-relationship diagram generation.
@@ -41,7 +43,8 @@ defmodule AshDiagram.Data.EntityRelationship do
 
   @default_options [
     name: :short,
-    show_private?: false
+    show_private?: false,
+    labels: [:compositions]
   ]
 
   @doc """
@@ -141,7 +144,7 @@ defmodule AshDiagram.Data.EntityRelationship do
       end
 
     compositions = Types.compositions(resources, attribute_fun)
-    modules = Enum.uniq(resources ++ Enum.map(compositions, &elem(&1, 1)))
+    modules = Enum.uniq(resources ++ Enum.map(compositions, &elem(&1, 2)))
     {typed_structs, resources} = Enum.split_with(modules, &Types.typed_struct?/1)
 
     entity_names =
@@ -212,6 +215,8 @@ defmodule AshDiagram.Data.EntityRelationship do
       |> Enum.map(fn %{source: source, destination: destination} = relationship ->
         {left_cardinality, right_cardinality} = cardinality(relationship)
 
+        # TODO: label relationships, too. A relationship and its reverse (belongs_to and
+        # has_many) are merged into one edge, which has room for one label only.
         %DiagramImpl.Relationship{
           left: {inspect(source), left_cardinality},
           right: {inspect(destination), right_cardinality},
@@ -223,18 +228,7 @@ defmodule AshDiagram.Data.EntityRelationship do
       |> Enum.uniq()
 
     composition_relationships =
-      compositions
-      |> Enum.sort()
-      |> Enum.map(fn {owner, target, cardinality} ->
-        %DiagramImpl.Relationship{
-          left: {inspect(owner), :exactly_one},
-          right:
-            {inspect(target), if(cardinality == :many, do: :zero_or_more, else: :zero_or_one)},
-          identifying?: true,
-          label: []
-        }
-      end)
-      |> Enum.uniq()
+      build_compositions(compositions, :compositions in options[:labels])
 
     resource_extensions = Enum.flat_map(resources, &Ash.Resource.Info.extensions/1)
 
@@ -271,6 +265,22 @@ defmodule AshDiagram.Data.EntityRelationship do
           end
       }
     end
+  end
+
+  @spec build_compositions(compositions :: [Types.composition()], label? :: boolean()) ::
+          [DiagramImpl.Relationship.t()]
+  defp build_compositions(compositions, label?) do
+    compositions
+    |> Enum.sort()
+    |> Enum.map(fn {owner, field, target, cardinality} ->
+      %DiagramImpl.Relationship{
+        left: {inspect(owner), :exactly_one},
+        right: {inspect(target), if(cardinality == :many, do: :zero_or_more, else: :zero_or_one)},
+        identifying?: true,
+        label: if(label?, do: Atom.to_string(field), else: [])
+      }
+    end)
+    |> Enum.uniq()
   end
 
   @spec aggregate_type(resource :: Ash.Resource.t(), aggregate :: Aggregate.t()) ::
