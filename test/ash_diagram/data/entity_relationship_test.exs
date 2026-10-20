@@ -144,13 +144,14 @@ defmodule AshDiagram.Data.EntityRelationshipTest do
                  }
                  "AshDiagram.Embedded.Comment"["Comment"] {
                    String？ text
-                   Author？ author
+                   Author author
                  }
                  "AshDiagram.Embedded.Post"["Post"] {
                    UUID id
                    String？ title
                    Comment[]？ comments
-                   Author？ author
+                   Author author
+                   Author？ editor
                    Meta？ meta
                    Stats？ stats
                    Struct？ raw
@@ -166,9 +167,10 @@ defmodule AshDiagram.Data.EntityRelationshipTest do
                    Integer likes
                    Reaction[]？ reactions
                  }
-                 "AshDiagram.Embedded.Comment" ||--o| "AshDiagram.Embedded.Author" : "author"
-                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Author" : "author"
+                 "AshDiagram.Embedded.Comment" ||--|| "AshDiagram.Embedded.Author" : "author"
+                 "AshDiagram.Embedded.Post" ||--|| "AshDiagram.Embedded.Author" : "author"
                  "AshDiagram.Embedded.Post" ||--o{ "AshDiagram.Embedded.Comment" : "comments"
+                 "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Author" : "editor"
                  "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Meta" : "meta"
                  "AshDiagram.Embedded.Post" ||--o| "AshDiagram.Embedded.Stats" : "stats"
                  "AshDiagram.Embedded.Stats" ||--o{ "AshDiagram.Embedded.Reaction" : "reactions"
